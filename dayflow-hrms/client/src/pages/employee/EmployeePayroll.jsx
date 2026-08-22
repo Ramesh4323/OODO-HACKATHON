@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
-import { CreditCard, Sparkles, CheckCircle2 } from 'lucide-react';
+import { CreditCard, CheckCircle2, Printer, X, Shield, Sparkles, Building2 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 const EmployeePayroll = () => {
+  const { user } = useAuth();
   const [payrolls, setPayrolls] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedSlip, setSelectedSlip] = useState(null);
 
   useEffect(() => {
     const fetchPayroll = async () => {
@@ -20,6 +23,10 @@ const EmployeePayroll = () => {
     fetchPayroll();
   }, []);
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
     <div className="space-y-6 max-w-5xl relative pb-10">
       {/* Background Orbs */}
@@ -27,7 +34,7 @@ const EmployeePayroll = () => {
 
       <div>
         <h1 className="text-2xl font-black text-slate-900 tracking-tight">My Payroll & Payslips</h1>
-        <p className="text-xs text-slate-500 font-semibold">View monthly payslips, allowances, deductions, and net payouts</p>
+        <p className="text-xs text-slate-500 font-semibold">View monthly payslips, allowances, deductions, and print official statements</p>
       </div>
 
       {loading ? (
@@ -53,9 +60,18 @@ const EmployeePayroll = () => {
                   </div>
                 </div>
 
-                <span className="px-4 py-1.5 pill-teal text-xs font-black rounded-full flex items-center gap-1">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> ISSUED
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className="px-4 py-1.5 pill-teal text-xs font-black rounded-full flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> ISSUED
+                  </span>
+
+                  <button
+                    onClick={() => setSelectedSlip(payroll)}
+                    className="px-4 py-1.5 cloud-button-3d text-xs uppercase tracking-wider flex items-center gap-1.5"
+                  >
+                    <Printer className="w-3.5 h-3.5" /> View / Print Slip
+                  </button>
+                </div>
               </div>
 
               {/* Salary Breakdown Box */}
@@ -86,6 +102,115 @@ const EmployeePayroll = () => {
               </p>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* OFFICIAL PRINTABLE PAYSLIP MODAL */}
+      {selectedSlip && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="cloud-card max-w-2xl w-full p-8 space-y-6 relative overflow-hidden bg-white text-slate-900">
+            
+            {/* Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-sky-200">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#70c3ff] via-[#38a5ff] to-[#0088ff] text-white flex items-center justify-center font-black shadow-md">
+                  <Building2 className="w-6 h-6" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-black text-slate-900 tracking-tight">DAYFLOW HRMS</h2>
+                  <p className="text-xs font-bold text-sky-600">Official Monthly Salary Slip • {selectedSlip.month}</p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setSelectedSlip(null)}
+                className="w-9 h-9 rounded-full bg-sky-50 text-slate-500 flex items-center justify-center hover:bg-sky-100 transition print:hidden"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Employee Info Grid */}
+            <div className="grid grid-cols-2 gap-4 p-4 bg-sky-50/70 rounded-2xl border border-sky-100 text-xs font-semibold">
+              <div>
+                <span className="text-[10px] font-black uppercase text-sky-600 tracking-wider">Employee Name</span>
+                <p className="font-bold text-slate-900">{user?.name || 'Aarav Mehta'}</p>
+              </div>
+
+              <div>
+                <span className="text-[10px] font-black uppercase text-sky-600 tracking-wider">Employee ID</span>
+                <p className="font-mono font-bold text-slate-900">{user?.employee_id || 'EMP001'}</p>
+              </div>
+
+              <div>
+                <span className="text-[10px] font-black uppercase text-sky-600 tracking-wider">Department</span>
+                <p className="font-bold text-slate-900">{user?.employee?.department || 'General Staff'}</p>
+              </div>
+
+              <div>
+                <span className="text-[10px] font-black uppercase text-sky-600 tracking-wider">Pay Period</span>
+                <p className="font-bold text-slate-900">{selectedSlip.month}</p>
+              </div>
+            </div>
+
+            {/* Financial Breakdown Table */}
+            <div className="border border-sky-100 rounded-2xl overflow-hidden text-xs">
+              <table className="w-full text-left">
+                <thead className="bg-sky-100/60 font-black text-sky-800 uppercase tracking-wider">
+                  <tr>
+                    <th className="py-2.5 px-4">Earnings / Deductions</th>
+                    <th className="py-2.5 px-4 text-right">Amount (₹)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-sky-100 font-semibold">
+                  <tr>
+                    <td className="py-2.5 px-4 font-bold text-slate-800">Basic Salary</td>
+                    <td className="py-2.5 px-4 text-right font-mono font-bold">₹{Number(selectedSlip.basic_salary).toLocaleString('en-IN')}</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2.5 px-4 font-bold text-emerald-700">Allowances & Bonuses</td>
+                    <td className="py-2.5 px-4 text-right font-mono font-bold text-emerald-700">+ ₹{Number(selectedSlip.allowances).toLocaleString('en-IN')}</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2.5 px-4 font-bold text-rose-700">Tax & Statutory Deductions</td>
+                    <td className="py-2.5 px-4 text-right font-mono font-bold text-rose-700">- ₹{Number(selectedSlip.deductions).toLocaleString('en-IN')}</td>
+                  </tr>
+                  <tr className="bg-sky-50 font-black text-slate-900">
+                    <td className="py-3 px-4 text-sm font-black">Total Net Payout</td>
+                    <td className="py-3 px-4 text-right text-base font-black text-sky-600 font-mono">₹{Number(selectedSlip.net_salary).toLocaleString('en-IN')}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {/* Official Seal Footer */}
+            <div className="flex items-center justify-between pt-4 border-t border-sky-100 text-xs font-semibold text-slate-500">
+              <div className="flex items-center gap-1.5 text-emerald-700 font-bold">
+                <Shield className="w-4 h-4" /> System Verified Digital Record
+              </div>
+              <div className="text-right">
+                <p className="font-bold text-slate-800">Dayflow HR Operations</p>
+                <p className="text-[10px] text-slate-400">Automated Seal</p>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3 pt-2 print:hidden">
+              <button
+                onClick={() => setSelectedSlip(null)}
+                className="w-1/2 py-3 cloud-button-secondary text-xs uppercase tracking-wider"
+              >
+                Close
+              </button>
+              <button
+                onClick={handlePrint}
+                className="w-1/2 py-3 cloud-button-3d text-xs uppercase tracking-wider flex items-center justify-center gap-2"
+              >
+                <Printer className="w-4 h-4" /> Print / Save PDF
+              </button>
+            </div>
+
+          </div>
         </div>
       )}
     </div>
