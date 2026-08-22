@@ -8,7 +8,7 @@ function getLocalDateStr(d = new Date()) {
   return `${year}-${month}-${day}`;
 }
 
-// Admin Analytics Stats
+// Admin Analytics Stats & Employee Leaderboard
 exports.getAdminStats = async (req, res) => {
   try {
     const dateStr = getLocalDateStr();
@@ -42,12 +42,43 @@ exports.getAdminStats = async (req, res) => {
       LIMIT 5
     `);
 
+    // Calculate Employee Rankings & Top Performers
+    const [performanceRows] = await db.execute(`
+      SELECT 
+        e.employee_id, 
+        e.name, 
+        e.email, 
+        e.department, 
+        e.designation,
+        e.phone,
+        e.address,
+        e.salary,
+        e.joining_date,
+        COUNT(a.id) as total_logs,
+        SUM(CASE WHEN a.status = 'Present' OR a.status = 'Half-day' THEN 1 ELSE 0 END) as present_logs,
+        COALESCE(ROUND((SUM(CASE WHEN a.status = 'Present' OR a.status = 'Half-day' THEN 1 ELSE 0 END) / NULLIF(COUNT(a.id), 0)) * 100), 98) as attendance_score
+      FROM employees e
+      LEFT JOIN attendance a ON e.employee_id = a.employee_id
+      GROUP BY e.employee_id, e.name, e.email, e.department, e.designation, e.phone, e.address, e.salary, e.joining_date
+      ORDER BY attendance_score DESC, present_logs DESC, e.name ASC
+    `);
+
+    const rankedEmployees = performanceRows.map((emp, index) => ({
+      ...emp,
+      rank: index + 1,
+      isTopPerformer: index === 0
+    }));
+
+    const topPerformer = rankedEmployees.length > 0 ? rankedEmployees[0] : null;
+
     return res.json({
       totalEmployees: totalEmployees || 0,
       presentToday: presentToday || 0,
       onLeaveToday: onLeaveToday || 0,
       pendingLeaves: pendingLeaves || 0,
-      recentLeaves
+      recentLeaves,
+      topPerformer,
+      rankedEmployees
     });
   } catch (err) {
     console.error('Admin stats error:', err);
@@ -71,7 +102,7 @@ exports.getEmployeeStats = async (req, res) => {
       [employeeId]
     );
 
-    const attendancePercentage = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 100;
+    const attendancePercentage = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 98;
 
     // Today's Status
     const [todayAttendance] = await db.execute(
