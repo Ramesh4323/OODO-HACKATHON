@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { Bell, Menu } from 'lucide-react';
@@ -7,6 +7,7 @@ const Navbar = ({ onToggleSidebar }) => {
   const { user, showToast } = useAuth();
   const [loading, setLoading] = useState(false);
   const [todayCheckedIn, setTodayCheckedIn] = useState(false);
+  const [todayCheckedOut, setTodayCheckedOut] = useState(false);
 
   const firstName = user?.name ? user.name.split(' ')[0] : 'User';
 
@@ -17,20 +18,54 @@ const Navbar = ({ onToggleSidebar }) => {
     year: 'numeric'
   });
 
+  const checkTodayStatus = async () => {
+    try {
+      const res = await api.get('/attendance/today');
+      if (res.data) {
+        if (res.data.check_in) setTodayCheckedIn(true);
+        if (res.data.check_out) setTodayCheckedOut(true);
+      }
+    } catch (err) {
+      console.error('Check today status error:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      checkTodayStatus();
+    }
+  }, [user]);
+
   const handleQuickCheckIn = async () => {
     setLoading(true);
     try {
       if (!todayCheckedIn) {
-        const res = await api.post('/attendance/checkin');
-        showToast(res.data.message || 'Checked in successfully!', 'success');
-        setTodayCheckedIn(true);
-      } else {
+        try {
+          const res = await api.post('/attendance/checkin');
+          showToast(res.data.message || 'Checked in successfully!', 'success');
+          setTodayCheckedIn(true);
+          setTodayCheckedOut(false);
+        } catch (err) {
+          const msg = err.response?.data?.message || '';
+          if (msg.includes('Already checked in')) {
+            setTodayCheckedIn(true);
+            // Now attempt checkout if already checked in
+            const res = await api.put('/attendance/checkout');
+            showToast(res.data.message || 'Checked out successfully!', 'success');
+            setTodayCheckedOut(true);
+          } else {
+            showToast(msg || 'Check in failed', 'error');
+          }
+        }
+      } else if (!todayCheckedOut) {
         const res = await api.put('/attendance/checkout');
         showToast(res.data.message || 'Checked out successfully!', 'success');
-        setTodayCheckedIn(false);
+        setTodayCheckedOut(true);
+      } else {
+        showToast('You have already completed your shift today.', 'info');
       }
     } catch (err) {
-      showToast(err.response?.data?.message || 'Check in action failed', 'info');
+      showToast(err.response?.data?.message || 'Check out failed.', 'error');
     } finally {
       setLoading(false);
     }
@@ -58,14 +93,22 @@ const Navbar = ({ onToggleSidebar }) => {
           </div>
         </div>
 
-        {/* Right: 3D Check In button & Notification Bell */}
+        {/* Right: Check In / Check Out button & Notification Bell */}
         <div className="flex items-center gap-4">
           <button
             onClick={handleQuickCheckIn}
-            disabled={loading}
-            className="px-6 py-2.5 cloud-button-3d text-xs font-black uppercase tracking-wider"
+            disabled={loading || todayCheckedOut}
+            className={`px-6 py-2.5 cloud-button-3d text-xs font-black uppercase tracking-wider ${
+              todayCheckedOut ? 'opacity-60 cursor-not-allowed' : ''
+            }`}
           >
-            {todayCheckedIn ? 'Check out' : 'Check in'}
+            {loading
+              ? 'Processing...'
+              : todayCheckedOut
+              ? 'Shift Completed'
+              : todayCheckedIn
+              ? 'Check out'
+              : 'Check in'}
           </button>
 
           {/* Bell Icon in Cloud Card */}

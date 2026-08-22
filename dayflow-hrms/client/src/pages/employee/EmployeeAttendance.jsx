@@ -10,7 +10,15 @@ const EmployeeAttendance = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [viewFilter, setViewFilter] = useState('ALL');
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const getLocalDateStr = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const todayStr = getLocalDateStr();
   const todayRecord = history.find((r) => r.date === todayStr);
 
   const fetchHistory = async () => {

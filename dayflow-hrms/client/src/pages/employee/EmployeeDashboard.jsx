@@ -12,33 +12,58 @@ const EmployeeDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [todayCheckedIn, setTodayCheckedIn] = useState(false);
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const res = await api.get('/dashboard/employee-stats');
-        setStats(res.data);
-      } catch (err) {
-        console.error('Failed to fetch employee stats:', err);
-      } finally {
-        setLoading(false);
+  const [todayCheckedOut, setTodayCheckedOut] = useState(false);
+
+  const fetchStats = async () => {
+    try {
+      const [statsRes, todayRes] = await Promise.all([
+        api.get('/dashboard/employee-stats'),
+        api.get('/attendance/today')
+      ]);
+      setStats(statsRes.data);
+      if (todayRes.data) {
+        if (todayRes.data.check_in) setTodayCheckedIn(true);
+        if (todayRes.data.check_out) setTodayCheckedOut(true);
       }
-    };
+    } catch (err) {
+      console.error('Failed to fetch employee stats:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchStats();
   }, []);
 
   const handleQuickCheckIn = async () => {
     try {
       if (!todayCheckedIn) {
-        await api.post('/attendance/checkin');
-        showToast('Checked in successfully!', 'success');
-        setTodayCheckedIn(true);
+        try {
+          const res = await api.post('/attendance/checkin');
+          showToast(res.data.message || 'Checked in successfully!', 'success');
+          setTodayCheckedIn(true);
+          setTodayCheckedOut(false);
+        } catch (err) {
+          const msg = err.response?.data?.message || '';
+          if (msg.includes('Already checked in')) {
+            setTodayCheckedIn(true);
+            const res = await api.put('/attendance/checkout');
+            showToast(res.data.message || 'Checked out successfully!', 'success');
+            setTodayCheckedOut(true);
+          } else {
+            showToast(msg || 'Check in failed', 'error');
+          }
+        }
+      } else if (!todayCheckedOut) {
+        const res = await api.put('/attendance/checkout');
+        showToast(res.data.message || 'Checked out successfully!', 'success');
+        setTodayCheckedOut(true);
       } else {
-        await api.put('/attendance/checkout');
-        showToast('Checked out successfully!', 'success');
-        setTodayCheckedIn(false);
+        showToast('Shift completed for today.', 'info');
       }
     } catch (err) {
-      showToast('Attendance recorded!', 'success');
+      showToast(err.response?.data?.message || 'Check out failed.', 'error');
     }
   };
 
