@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import StatCard from '../../components/StatCard';
-import { Users, UserCheck, CalendarOff, Clock, Check, X, Shield, Trophy, Award, Star, Eye, Phone, MapPin, Mail, Briefcase, DollarSign, Calendar } from 'lucide-react';
+import { Users, UserCheck, CalendarOff, Clock, Check, X, Shield, Trophy, Award, Star, Eye, Phone, MapPin, Mail, Briefcase, DollarSign, Calendar, Megaphone } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const AdminDashboard = () => {
@@ -11,6 +11,12 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [selectedEmp, setSelectedEmp] = useState(null);
+  const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
+  const [announcementForm, setAnnouncementForm] = useState({
+    title: '',
+    description: '',
+    type: 'GENERAL'
+  });
 
   const fetchStats = async () => {
     try {
@@ -26,6 +32,21 @@ const AdminDashboard = () => {
   useEffect(() => {
     fetchStats();
   }, []);
+
+  const handlePostAnnouncement = async (e) => {
+    e.preventDefault();
+    setActionLoading(true);
+    try {
+      await api.post('/announcements', announcementForm);
+      showToast('Company Announcement posted successfully!', 'success');
+      setShowAnnouncementModal(false);
+      setAnnouncementForm({ title: '', description: '', type: 'GENERAL' });
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Failed to post announcement', 'error');
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   const handleApprove = async (leaveId) => {
     setActionLoading(true);
@@ -68,15 +89,18 @@ const AdminDashboard = () => {
             <Shield className="w-3.5 h-3.5" /> HR Command Center
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Organization Overview</h1>
-          <p className="text-xs sm:text-sm text-slate-500 font-semibold">Monitor workforce, top performers, employee rankings & leave logs</p>
+          <p className="text-xs sm:text-sm text-slate-500 font-semibold">Monitor workforce, top performers, employee rankings & post company announcements</p>
         </div>
 
-        <div className="flex gap-3">
-          <Link to="/admin/employees" className="px-6 py-3 cloud-button-3d text-xs uppercase tracking-wider">
+        <div className="flex gap-3 flex-wrap">
+          <button
+            onClick={() => setShowAnnouncementModal(true)}
+            className="px-6 py-3 cloud-button-3d text-xs uppercase tracking-wider flex items-center gap-1.5"
+          >
+            <Megaphone className="w-4 h-4" /> Post Announcement
+          </button>
+          <Link to="/admin/employees" className="px-6 py-3 cloud-button-secondary text-xs uppercase tracking-wider">
             Manage Employees
-          </Link>
-          <Link to="/admin/leaves" className="px-6 py-3 cloud-button-secondary text-xs uppercase tracking-wider">
-            Leave Approvals
           </Link>
         </div>
       </div>
@@ -397,6 +421,83 @@ const AdminDashboard = () => {
             >
               Close Details
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* POST ANNOUNCEMENT MODAL */}
+      {showAnnouncementModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="cloud-card max-w-lg w-full p-8 space-y-5 animate-spring relative overflow-hidden">
+            <div className="flex items-center justify-between pb-3 border-b border-sky-100">
+              <div className="flex items-center gap-2">
+                <Megaphone className="w-5 h-5 text-sky-600" />
+                <h3 className="text-lg font-black text-slate-900">Post Company Announcement</h3>
+              </div>
+              <button
+                onClick={() => setShowAnnouncementModal(false)}
+                className="w-8 h-8 rounded-full bg-sky-50 text-slate-500 flex items-center justify-center hover:text-slate-800 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handlePostAnnouncement} className="space-y-4 text-xs font-semibold">
+              <div>
+                <label className="block text-slate-700 font-bold mb-1">Announcement Title</label>
+                <input
+                  type="text"
+                  value={announcementForm.title}
+                  onChange={(e) => setAnnouncementForm({ ...announcementForm, title: e.target.value })}
+                  placeholder="e.g. 📢 Q3 Company Townhall Meeting"
+                  className="w-full p-3.5 rounded-2xl bg-sky-50/60 border border-sky-100 text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-700 font-bold mb-1">Announcement Type</label>
+                <select
+                  value={announcementForm.type}
+                  onChange={(e) => setAnnouncementForm({ ...announcementForm, type: e.target.value })}
+                  className="w-full p-3.5 rounded-2xl bg-sky-50/60 border border-sky-100 text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-sky-500"
+                >
+                  <option value="GENERAL">General Notice</option>
+                  <option value="HOLIDAY">Office Holiday</option>
+                  <option value="EVENT">Company Event</option>
+                  <option value="AWARD">Excellence Award</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-slate-700 font-bold mb-1">Description / Details</label>
+                <textarea
+                  rows="4"
+                  value={announcementForm.description}
+                  onChange={(e) => setAnnouncementForm({ ...announcementForm, description: e.target.value })}
+                  placeholder="Write company update details here..."
+                  className="w-full p-3.5 rounded-2xl bg-sky-50/60 border border-sky-100 text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  required
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAnnouncementModal(false)}
+                  className="w-1/2 py-3 cloud-button-secondary text-xs uppercase tracking-wider"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="w-1/2 py-3 cloud-button-3d text-xs font-black uppercase tracking-wider"
+                >
+                  {actionLoading ? 'Posting...' : 'Post Update'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
