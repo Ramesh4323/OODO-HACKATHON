@@ -65,7 +65,7 @@ const Sidebar = ({ isOpen, onClose }) => {
                 <span className="font-black text-2xl tracking-tight text-slate-900 leading-none">
                   Dayflow
                 </span>
-                <p className="text-[10px] font-bold text-sky-600 tracking-wider uppercase mt-0.5">3D WORKSPACE</p>
+                <p className="text-[10px] font-bold text-sky-600 tracking-wider uppercase mt-0.5">WORKSPACE</p>
               </div>
             </div>
 

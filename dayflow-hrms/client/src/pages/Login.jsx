@@ -77,7 +77,7 @@ const Login = () => {
           </div>
 
           <p className="text-center text-xs font-bold text-sky-600 tracking-wider uppercase pt-4">
-            Dayflow HRMS • 3D Sky-Blue Workspace
+            Dayflow HRMS • Cloud Workspace
           </p>
         </div>
 
