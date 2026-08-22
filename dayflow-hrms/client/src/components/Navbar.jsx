@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
-import { Bell, Menu } from 'lucide-react';
+import { Bell, Menu, Megaphone, Calendar, Award, CheckCheck, X } from 'lucide-react';
 
 const Navbar = ({ onToggleSidebar }) => {
   const { user, showToast } = useAuth();
   const [loading, setLoading] = useState(false);
   const [todayCheckedIn, setTodayCheckedIn] = useState(false);
   const [todayCheckedOut, setTodayCheckedOut] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(3);
 
   const firstName = user?.name ? user.name.split(' ')[0] : 'User';
 
@@ -17,6 +19,30 @@ const Navbar = ({ onToggleSidebar }) => {
     month: 'long',
     year: 'numeric'
   });
+
+  const companyUpdates = [
+    {
+      id: 1,
+      title: '📢 Q3 Company Townhall',
+      desc: 'Join our Quarterly All-Hands meeting on Friday at 4:00 PM IST for product roadmap & performance milestones.',
+      time: '2 hrs ago',
+      badge: 'pill-purple'
+    },
+    {
+      id: 2,
+      title: '🌴 Office Holiday Announcement',
+      desc: 'Dayflow workspace will remain closed on August 25 for National Festival. Enjoy your long weekend!',
+      time: 'Yesterday',
+      badge: 'pill-amber'
+    },
+    {
+      id: 3,
+      title: '🏆 Top Performer Recognition',
+      desc: 'Congratulations to Aarav Mehta for ranking #1 in Attendance & Performance compliance this cycle!',
+      time: '2 days ago',
+      badge: 'pill-teal'
+    }
+  ];
 
   const checkTodayStatus = async () => {
     try {
@@ -49,7 +75,6 @@ const Navbar = ({ onToggleSidebar }) => {
           const msg = err.response?.data?.message || '';
           if (msg.includes('Already checked in')) {
             setTodayCheckedIn(true);
-            // Now attempt checkout if already checked in
             const res = await api.put('/attendance/checkout');
             showToast(res.data.message || 'Checked out successfully!', 'success');
             setTodayCheckedOut(true);
@@ -69,6 +94,11 @@ const Navbar = ({ onToggleSidebar }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const markAllRead = () => {
+    setUnreadCount(0);
+    showToast('All company updates marked as read.', 'info');
   };
 
   return (
@@ -93,7 +123,7 @@ const Navbar = ({ onToggleSidebar }) => {
           </div>
         </div>
 
-        {/* Right: Check In / Check Out button & Notification Bell */}
+        {/* Right: Check In / Check Out button & Company Updates Bell */}
         <div className="flex items-center gap-4">
           <button
             onClick={handleQuickCheckIn}
@@ -111,14 +141,69 @@ const Navbar = ({ onToggleSidebar }) => {
               : 'Check in'}
           </button>
 
-          {/* Bell Icon in Cloud Card */}
+          {/* Bell Icon with Company Updates Dropdown */}
           <div className="relative">
-            <button className="w-11 h-11 rounded-2xl cloud-card flex items-center justify-center text-slate-700 hover:bg-sky-50 transition">
-              <Bell className="w-5 h-5" />
+            <button
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="w-11 h-11 rounded-2xl cloud-card flex items-center justify-center text-slate-700 hover:bg-sky-50 transition relative"
+              title="Company Updates & Announcements"
+            >
+              <Bell className="w-5 h-5 text-sky-700" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-amber-400 text-slate-950 font-black text-[10px] rounded-full flex items-center justify-center border-2 border-white shadow-sm animate-pulse">
+                  {unreadCount}
+                </span>
+              )}
             </button>
-            <span className="absolute -top-1 -right-1 w-5 h-5 bg-amber-400 text-slate-900 font-black text-[10px] rounded-full flex items-center justify-center border-2 border-white shadow-sm">
-              3
-            </span>
+
+            {/* COMPANY UPDATES DROPDOWN CARD */}
+            {showNotifications && (
+              <div className="absolute right-0 mt-3 w-80 sm:w-96 cloud-card p-6 shadow-2xl z-50 animate-spring space-y-4 border border-sky-200">
+                <div className="flex items-center justify-between pb-3 border-b border-sky-100">
+                  <div className="flex items-center gap-2">
+                    <Megaphone className="w-4 h-4 text-sky-600" />
+                    <h3 className="text-sm font-black text-slate-900">Company Updates</h3>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={markAllRead}
+                        className="text-[11px] font-bold text-sky-600 hover:underline flex items-center gap-1"
+                      >
+                        <CheckCheck className="w-3.5 h-3.5" /> Mark read
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setShowNotifications(false)}
+                      className="w-6 h-6 rounded-full bg-sky-50 text-slate-400 flex items-center justify-center hover:text-slate-700 transition"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Updates List */}
+                <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+                  {companyUpdates.map((item) => (
+                    <div
+                      key={item.id}
+                      className="p-3.5 bg-sky-50/70 hover:bg-sky-100/60 rounded-2xl border border-sky-100 transition space-y-1.5"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-extrabold text-xs text-slate-900">{item.title}</span>
+                        <span className="text-[10px] font-bold text-slate-400">{item.time}</span>
+                      </div>
+                      <p className="text-xs font-semibold text-slate-600 leading-relaxed">{item.desc}</p>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="pt-2 text-center border-t border-sky-100">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Dayflow Official Announcements</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
