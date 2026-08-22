@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import CalendarWidget from '../../components/CalendarWidget';
+import AIWorkdayAssistant from '../../components/AIWorkdayAssistant';
 import { Plus, CheckCircle, Rocket, Sparkles, Clock, Calendar, ArrowRight, Grid } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -54,6 +55,14 @@ const EmployeeDashboard = () => {
       {/* Background Floating Orbs matching the image */}
       <div className="fixed top-12 left-1/3 w-64 h-64 bg-sky-200/40 rounded-full blur-3xl pointer-events-none animate-orb-1"></div>
       <div className="fixed bottom-20 right-1/4 w-80 h-80 bg-blue-300/30 rounded-full blur-3xl pointer-events-none animate-orb-2"></div>
+
+      {/* AI Workday Productivity & Wellness Score Assistant */}
+      <div className="relative z-10">
+        <AIWorkdayAssistant
+          attendancePercentage={stats?.attendancePercentage || 98}
+          pendingLeaves={stats?.pendingLeaves || 0}
+        />
+      </div>
 
       {/* 3 Main Columns Matching the Uploaded Image Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start relative z-10">
