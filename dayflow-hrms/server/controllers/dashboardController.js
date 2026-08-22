@@ -1,9 +1,17 @@
 const db = require('../config/db');
 
+// Helper to get local date string YYYY-MM-DD
+function getLocalDateStr(d = new Date()) {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 // Admin Analytics Stats
 exports.getAdminStats = async (req, res) => {
   try {
-    const dateStr = new Date().toISOString().split('T')[0];
+    const dateStr = getLocalDateStr();
 
     // Total Employees
     const [[{ totalEmployees }]] = await db.execute('SELECT COUNT(*) as totalEmployees FROM employees');
@@ -51,7 +59,7 @@ exports.getAdminStats = async (req, res) => {
 exports.getEmployeeStats = async (req, res) => {
   try {
     const employeeId = req.user.employeeId;
-    const dateStr = new Date().toISOString().split('T')[0];
+    const dateStr = getLocalDateStr();
 
     // Attendance stats
     const [[{ totalDays }]] = await db.execute(
@@ -72,7 +80,9 @@ exports.getEmployeeStats = async (req, res) => {
     );
 
     let todayStatus = 'Not Checked In';
+    let todayCheckIn = null;
     if (todayAttendance.length > 0) {
+      todayCheckIn = todayAttendance[0].check_in;
       if (todayAttendance[0].check_out) {
         todayStatus = 'Checked Out';
       } else if (todayAttendance[0].check_in) {
@@ -104,14 +114,13 @@ exports.getEmployeeStats = async (req, res) => {
     return res.json({
       attendancePercentage,
       todayStatus,
-      todayCheckIn: todayAttendance.length > 0 ? todayAttendance[0].check_in : null,
-      todayCheckOut: todayAttendance.length > 0 ? todayAttendance[0].check_out : null,
+      todayCheckIn,
       pendingLeaves: pendingCount || 0,
-      salary: salary || 0,
+      salary,
       recentLeaves
     });
   } catch (err) {
     console.error('Employee stats error:', err);
-    return res.status(500).json({ message: 'Error calculating employee dashboard stats.' });
+    return res.status(500).json({ message: 'Error fetching employee dashboard analytics.' });
   }
 };

@@ -1,11 +1,19 @@
 const db = require('../config/db');
 
+// Helper to get local date string YYYY-MM-DD
+function getLocalDateStr(d = new Date()) {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 // Check-in
 exports.checkIn = async (req, res) => {
   try {
     const employeeId = req.user.employeeId;
     const now = new Date();
-    const dateStr = now.toISOString().split('T')[0];
+    const dateStr = getLocalDateStr(now);
     const timeStr = now.toTimeString().split(' ')[0]; // HH:MM:SS
 
     // Check if already checked in today
@@ -44,7 +52,7 @@ exports.checkOut = async (req, res) => {
   try {
     const employeeId = req.user.employeeId;
     const now = new Date();
-    const dateStr = now.toISOString().split('T')[0];
+    const dateStr = getLocalDateStr(now);
     const timeStr = now.toTimeString().split(' ')[0];
 
     // Find today's record
@@ -97,22 +105,5 @@ exports.getAllAttendance = async (req, res) => {
   } catch (err) {
     console.error('Get all attendance error:', err);
     return res.status(500).json({ message: 'Error fetching all attendance.' });
-  }
-};
-
-// Get today's attendance (Admin / Dashboard)
-exports.getTodayAttendance = async (req, res) => {
-  try {
-    const dateStr = new Date().toISOString().split('T')[0];
-    const [rows] = await db.execute(`
-      SELECT a.*, e.name as employee_name, e.department
-      FROM attendance a
-      JOIN employees e ON a.employee_id = e.employee_id
-      WHERE a.date = ?
-    `, [dateStr]);
-    return res.json(rows);
-  } catch (err) {
-    console.error('Get today attendance error:', err);
-    return res.status(500).json({ message: 'Error fetching today attendance.' });
   }
 };
