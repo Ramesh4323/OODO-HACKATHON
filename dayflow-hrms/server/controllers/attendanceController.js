@@ -77,6 +77,22 @@ exports.checkOut = async (req, res) => {
   }
 };
 
+// Get today's attendance
+exports.getTodayAttendance = async (req, res) => {
+  try {
+    const employeeId = req.user.employeeId;
+    const dateStr = getLocalDateStr();
+    const [rows] = await db.execute(
+      'SELECT * FROM attendance WHERE employee_id = ? AND date = ?',
+      [employeeId, dateStr]
+    );
+    return res.json(rows[0] || null);
+  } catch (err) {
+    console.error('Get today attendance error:', err);
+    return res.status(500).json({ message: 'Error fetching today attendance.' });
+  }
+};
+
 // Get current employee's attendance
 exports.getMyAttendance = async (req, res) => {
   try {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Rocket, Sparkles, Eye, EyeOff } from 'lucide-react';
@@ -10,8 +10,18 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user) {
+      if (user.role === 'ADMIN') {
+        navigate('/admin/dashboard', { replace: true });
+      } else {
+        navigate('/employee/dashboard', { replace: true });
+      }
+    }
+  }, [user, navigate]);
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
@@ -24,11 +34,11 @@ const Login = () => {
 
     setLoading(true);
     try {
-      const loggedUser = await login(email, password);
+      const loggedUser = await login(email.trim(), password);
       if (loggedUser.role === 'ADMIN') {
-        navigate('/admin/dashboard');
+        navigate('/admin/dashboard', { replace: true });
       } else {
-        navigate('/employee/dashboard');
+        navigate('/employee/dashboard', { replace: true });
       }
     } catch (err) {
       setError(err.message || 'Login failed. Invalid email or password.');
@@ -126,7 +136,7 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-4 px-4 cloud-button-3d text-xs font-black uppercase tracking-wider mt-2"
+              className="w-full py-4 px-4 cloud-button-3d text-xs font-black uppercase tracking-wider mt-2 disabled:opacity-60"
             >
               {loading ? 'Signing in...' : 'Sign In'}
             </button>
